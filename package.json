@@ -1,0 +1,41 @@
+{
+  "name": "gethired",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "mcp:linkedin": "uvx linkedin-scraper-mcp@latest --transport streamable-http --host 127.0.0.1 --port 8080 --path /mcp",
+    "mcp:linkedin:login": "uvx linkedin-scraper-mcp@latest --login",
+    "jobs:fetch": "tsx --env-file=.env.local scripts/fetch-pune-jobs.ts",
+    "jobs:parse": "tsx --env-file=.env.local scripts/parse-jd-worker.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.12",
+    "@ai-sdk/openai": "^1.3.24",
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "@types/ws": "^8.18.1",
+    "ai": "^4.3.19",
+    "next": "^16.2.6",
+    "ollama-ai-provider": "^1.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "ws": "^8.21.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^16.2.6",
+    "tailwindcss": "^4",
+    "tsx": "^4.22.3",
+    "typescript": "^5"
+  }
+}
