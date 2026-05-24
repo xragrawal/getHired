@@ -52,37 +52,75 @@ function buildDedupKey(company: string, title: string, location: string): string
 
 // ─── JD parse schema ──────────────────────────────────────────────────────────
 
+const SENIORITY_VALUES = ["Intern", "Junior", "Mid", "Senior", "Staff", "Principal", "Lead"] as const;
+
 const JDSchema = z.object({
-  seniority_level: z.enum(["Intern", "Junior", "Mid", "Senior", "Staff", "Principal", "Lead"]).nullable(),
-  experience_min: z.number().int().nullable(),
-  experience_max: z.number().int().nullable(),
-  skills_required: z.array(z.string()),
-  skills_preferred: z.array(z.string()),
-  tech_stack: z.array(z.string()),
-  salary_min: z.number().nullable(),   // in INR
-  salary_max: z.number().nullable(),
-  salary_currency: z.string().nullable(),
-  responsibilities: z.array(z.string()),
-  benefits: z.array(z.string()),
-  visa_sponsorship: z.boolean().nullable(),
-  summary: z.string(),                 // 1-2 sentence plain-english summary
+  // .catch(null) tolerates unexpected values (e.g. "entry-level", "junior developer") from weaker models
+  seniority_level: z
+    .enum(SENIORITY_VALUES)
+    .nullable()
+    .catch(null),
+  experience_min: z.number().int().nullable().catch(null),
+  experience_max: z.number().int().nullable().catch(null),
+  skills_required: z.array(z.string()).catch([]),
+  skills_preferred: z.array(z.string()).catch([]),
+  tech_stack: z.array(z.string()).catch([]),
+  salary_min: z.number().nullable().catch(null),
+  salary_max: z.number().nullable().catch(null),
+  salary_currency: z.string().nullable().catch(null),
+  responsibilities: z.array(z.string()).catch([]),
+  benefits: z.array(z.string()).catch([]),
+  visa_sponsorship: z.boolean().nullable().catch(null),
+  summary: z.string().catch(""),
 });
 
 type JDParsed = z.infer<typeof JDSchema>;
 
-async function parseJD(jdRaw: string, llmConfig: LLMConfig): Promise<JDParsed> {
-  const model = getLanguageModel(llmConfig);
-  const { object } = await generateObject({
-    model,
-    schema: JDSchema,
-    prompt: `Extract structured information from the following job description.
-For salary, convert to INR annual if possible. If not mentioned, use null.
-For skills and tech_stack, extract specific technologies and tools — not vague terms like "communication skills".
-Keep the summary to 1-2 sentences describing the role and company.
+const PARSE_PROMPT = (jdRaw: string) => `You are a structured data extractor. Extract information from the job description below and return ONLY a valid JSON object — no explanation, no markdown, no code fences.
+
+JSON schema to follow:
+{
+  "seniority_level": "Intern" | "Junior" | "Mid" | "Senior" | "Staff" | "Principal" | "Lead" | null,
+  "experience_min": number | null,
+  "experience_max": number | null,
+  "skills_required": string[],
+  "skills_preferred": string[],
+  "tech_stack": string[],
+  "salary_min": number | null,
+  "salary_max": number | null,
+  "salary_currency": string | null,
+  "responsibilities": string[],
+  "benefits": string[],
+  "visa_sponsorship": boolean | null,
+  "summary": string
+}
+
+Rules:
+- salary: convert to INR annual if possible; null if not mentioned
+- skills/tech_stack: specific tools and technologies only, not soft skills
+- summary: 1-2 sentences describing the role and company
+- Return ONLY the JSON object, nothing else
 
 Job Description:
-${jdRaw}`,
+${jdRaw}`;
+
+async function parseJD(jdRaw: string, llmConfig: LLMConfig): Promise<JDParsed> {
+  const model = getLanguageModel(llmConfig);
+  const { object, rawResponse } = await generateObject({
+    model,
+    schema: JDSchema,
+    mode: "json",
+    prompt: PARSE_PROMPT(jdRaw),
   });
+
+  if (process.env.LLM_DEBUG === "1") {
+    console.log("\n[LLM raw response]");
+    console.log(JSON.stringify(rawResponse, null, 2));
+    console.log("[LLM parsed object]");
+    console.log(JSON.stringify(object, null, 2));
+    console.log();
+  }
+
   return object;
 }
 
