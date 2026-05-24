@@ -10,7 +10,7 @@
     "mcp:linkedin": "uvx linkedin-scraper-mcp@latest --transport streamable-http --host 127.0.0.1 --port 8080 --path /mcp",
     "mcp:linkedin:login": "uvx linkedin-scraper-mcp@latest --login",
     "jobs:fetch": "tsx --env-file=.env.local scripts/fetch-pune-jobs.ts",
-    "jobs:parse": "tsx --env-file=.env.local scripts/parse-jd-worker.ts --llm ollama",
+    "jobs:parse": "tsx --env-file=.env.local scripts/parse-jd-worker.ts --llm llamacpp",
     "jobs:embed": "tsx --env-file=.env.local scripts/embed-jobs.ts"
   },
   "dependencies": {
