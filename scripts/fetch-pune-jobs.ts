@@ -21,10 +21,8 @@ function formatDuration(ms: number): string {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Rewrites the output file with current accumulated state.
-// Called after every keyword so the file is always up-to-date.
 function flush(outFile: string, startTime: number, jobs: LinkedInJobWithDetails[]) {
-  const localCount = jobs.filter((j) => j.pass_type === "local").length;
+  const puneCount = jobs.filter((j) => j.pass_type === "pune").length;
   const remoteCount = jobs.filter((j) => j.pass_type === "remote").length;
   writeFileSync(
     outFile,
@@ -34,8 +32,8 @@ function flush(outFile: string, startTime: number, jobs: LinkedInJobWithDetails[
         duration_ms: Date.now() - startTime,
         status: "in_progress",
         passes: {
-          local: { location: PASSES.local.baseParams.location, count: localCount },
-          // remote: { location: PASSES.remote.baseParams.location, count: remoteCount },
+          pune: { location: PASSES.pune.baseParams.location, count: puneCount },
+          remote: { location: PASSES.remote.baseParams.location, count: remoteCount },
         },
         total_unique_jobs: jobs.length,
         still_accepting: jobs.filter((j) => j.details?.is_accepting !== false).length,
@@ -61,9 +59,9 @@ async function main() {
   const allKeywords = ACTIVE_GROUPS.flatMap((g) => KEYWORDS[g]);
   const client = await initSharedClient();
 
-  console.log(`\n🚀 Starting job fetch`);
-  console.log(`   Keywords : ${allKeywords.length} (groups: ${ACTIVE_GROUPS.join(", ")})`);
-  console.log(`   Passes   : ${Object.keys(PASSES).join(", ")}`);
+  console.log(`\n🚀 Starting job fetch — Junior Full Stack Developer`);
+  console.log(`   Keywords : ${allKeywords.length} (${allKeywords.join(", ")})`);
+  console.log(`   Passes   : pune, remote`);
   console.log(`   Output   : ${outFile}\n`);
 
   for (const [passKey, pass] of Object.entries(PASSES) as [keyof typeof PASSES, typeof PASSES[keyof typeof PASSES]][]) {
@@ -74,7 +72,6 @@ async function main() {
     for (const keyword of allKeywords) {
       console.log(`\n  🔍 "${keyword}"...`);
 
-      // Step 1 — search
       let fresh: typeof allJobs[0][] = [];
       try {
         const result = await searchLinkedInJobs(
@@ -84,14 +81,14 @@ async function main() {
 
         let newJobs = result.jobs.filter((j) => !seen.has(j.job_id));
 
-        // if (passKey === "remote") {
-        //   const before = newJobs.length;
-        //   newJobs = newJobs.filter(
-        //     (j) => REMOTE_LOCATION_ALLOWLIST.test(j.location) || j.location === ""
-        //   );
-        //   const dropped = before - newJobs.length;
-        //   if (dropped > 0) console.log(`     ⚠️  Dropped ${dropped} non-India remote listings`);
-        // }
+        if (passKey === "remote") {
+          const before = newJobs.length;
+          newJobs = newJobs.filter(
+            (j) => REMOTE_LOCATION_ALLOWLIST.test(j.location) || j.location === ""
+          );
+          const dropped = before - newJobs.length;
+          if (dropped > 0) console.log(`     ⚠️  Dropped ${dropped} non-India remote listings`);
+        }
 
         newJobs.forEach((j) => seen.add(j.job_id));
         fresh = newJobs.map((j) => ({ ...j, pass_type: passKey, details: null }));
@@ -103,7 +100,6 @@ async function main() {
 
       if (fresh.length === 0) continue;
 
-      // Step 2 — fetch details for this keyword's jobs immediately
       console.log(`     🔎 Fetching details...`);
       for (let i = 0; i < fresh.length; i++) {
         const job = fresh[i];
@@ -118,14 +114,15 @@ async function main() {
         if (i < fresh.length - 1) await delay(500);
       }
 
-      // Step 3 — write to file immediately after this keyword is done
       allJobs.push(...fresh);
       flush(outFile, startTime, allJobs);
       console.log(`     💾 Saved (${allJobs.length} total so far)`);
     }
   }
 
-  // Final write — mark as complete
+  const puneCount = allJobs.filter((j) => j.pass_type === "pune").length;
+  const remoteCount = allJobs.filter((j) => j.pass_type === "remote").length;
+
   writeFileSync(
     outFile,
     JSON.stringify(
@@ -134,8 +131,8 @@ async function main() {
         duration_ms: Date.now() - startTime,
         status: "complete",
         passes: {
-          local: { location: PASSES.local.baseParams.location, count: allJobs.filter((j) => j.pass_type === "local").length },
-          // remote: { location: PASSES.remote.baseParams.location, count: allJobs.filter((j) => j.pass_type === "remote").length },
+          pune: { location: PASSES.pune.baseParams.location, count: puneCount },
+          remote: { location: PASSES.remote.baseParams.location, count: remoteCount },
         },
         total_unique_jobs: allJobs.length,
         still_accepting: allJobs.filter((j) => j.details?.is_accepting !== false).length,
@@ -147,12 +144,9 @@ async function main() {
     )
   );
 
-  const localCount = allJobs.filter((j) => j.pass_type === "local").length;
-  const remoteCount = allJobs.filter((j) => j.pass_type === "remote").length;
-
   console.log(`\n${"═".repeat(60)}`);
   console.log(`✅ Complete`);
-  console.log(`   Local jobs     : ${localCount}`);
+  console.log(`   Pune jobs      : ${puneCount}`);
   console.log(`   Remote jobs    : ${remoteCount}`);
   console.log(`   Total unique   : ${allJobs.length}`);
   console.log(`   Still accepting: ${allJobs.filter((j) => j.details?.is_accepting !== false).length}`);

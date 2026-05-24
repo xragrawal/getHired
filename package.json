@@ -10,7 +10,8 @@
     "mcp:linkedin": "uvx linkedin-scraper-mcp@latest --transport streamable-http --host 127.0.0.1 --port 8080 --path /mcp",
     "mcp:linkedin:login": "uvx linkedin-scraper-mcp@latest --login",
     "jobs:fetch": "tsx --env-file=.env.local scripts/fetch-pune-jobs.ts",
-    "jobs:parse": "tsx --env-file=.env.local scripts/parse-jd-worker.ts"
+    "jobs:parse": "tsx --env-file=.env.local scripts/parse-jd-worker.ts --llm ollama",
+    "jobs:embed": "tsx --env-file=.env.local scripts/embed-jobs.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
@@ -21,6 +22,7 @@
     "ai": "^4.3.19",
     "next": "^16.2.6",
     "ollama-ai-provider": "^1.2.0",
+    "openai": "^6.39.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "ws": "^8.21.0",
