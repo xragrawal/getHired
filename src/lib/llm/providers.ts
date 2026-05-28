@@ -1,9 +1,10 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { openai, createOpenAI } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
 import type { LanguageModel } from "ai";
 
-export type LLMProvider = "anthropic" | "openai" | "ollama" | "llamacpp";
+export type LLMProvider = "anthropic" | "openai" | "google" | "ollama" | "llamacpp";
 
 export interface LLMConfig {
   provider: LLMProvider;
@@ -16,6 +17,7 @@ export function getLLMConfig(): LLMConfig {
   const defaultModels: Record<LLMProvider, string> = {
     anthropic: "claude-sonnet-4-6",
     openai: "gpt-4o",
+    google: "gemini-2.5-flash-preview-05-20",
     ollama: "gemma3:4b",
     llamacpp: "local-model",
   };
@@ -24,6 +26,11 @@ export function getLLMConfig(): LLMConfig {
     model: process.env.LLM_MODEL ?? defaultModels[provider],
     baseURL: process.env.OLLAMA_BASE_URL ?? process.env.LLAMACPP_BASE_URL ?? "http://localhost:11434",
   };
+}
+
+export function getUILanguageModel(): LanguageModel {
+  const model = process.env.UI_LLM_MODEL ?? "gemini-2.5-flash";
+  return google(model);
 }
 
 export function getLanguageModel(config?: LLMConfig): LanguageModel {
@@ -35,6 +42,9 @@ export function getLanguageModel(config?: LLMConfig): LanguageModel {
 
     case "openai":
       return openai(cfg.model);
+
+    case "google":
+      return google(cfg.model);
 
     case "ollama": {
       const ollamaProvider = createOllama({ baseURL: `${cfg.baseURL}/api` });

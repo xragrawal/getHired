@@ -31,14 +31,17 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Redirect unauthenticated users away from protected routes
-  if (!user && pathname.startsWith("/dashboard")) {
+  const protectedRoutes = ["/dashboard", "/jobs", "/onboarding", "/personas"];
+  const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
+
+  // Redirect unauthenticated users to login
+  if (!user && isProtected) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // Redirect authenticated users away from login
   if (user && pathname === "/login") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL("/jobs", request.url));
   }
 
   return supabaseResponse;
